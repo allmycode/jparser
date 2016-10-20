@@ -2,11 +2,13 @@ package modeparser;
 
 public class Main {
     public static void main(String[] args) {
-        check("<ggg a>");
-        check("<ggg a >");
-        check("<ggg a b>");
-        check("<ggg a b=123s >");
-        check("<ggg a b=123s     c d=xxl    >");
+        //check("<ggg>");
+        //check("<ggg >");
+        //check("< ggg>");
+        //check("< ggg >");
+        check("< g a >");
+        check("< g a b>");
+
 
     }
 
@@ -21,11 +23,11 @@ public class Main {
     }
 
     public static void check(String s) {
-        ModeParser p = new ModeParser(s, false);
+        ModeParser p = new ModeParser(s, true);
         p.parse();
         System.out.println(p.text);
 
-        p = new ModeParser(s, true);
+        p = new ModeParser(s, false);
         p.parse();
         System.out.println(p.text);
 

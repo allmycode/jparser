@@ -17,7 +17,7 @@ public class CharUtil {
         return isAlpha(c) || isNum(c);
     }
 
-    public static boolean isTagName(char c) {
+    public static boolean isAlnum_Col(char c) {
         return isAlnum(c) || c ==':' || c == '_';
     }
 
