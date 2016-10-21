@@ -79,7 +79,6 @@ public class ModeParser {
         }
     }
 
-    private Set<State> trailSpace = EnumSet.of(TagStart, TagStartSlash, TagName, TagAttr, TagAttrValue, TagAttrEQ);
     Map<State, State> of(State ... states) {
         Map<State, State> res = new EnumMap<>(State.class);
         for (int i = 0; i < states.length; i+=2) {
@@ -89,7 +88,7 @@ public class ModeParser {
     }
     private Map<State, State> trailSpaceMap = of(TagStart, TagStart_, TagName, TagName_, TagAttr, TagAttr_, TagAttrEQ, TagAttrEQ_, TagAttrValue, TagAttr);
     private Map<State, State> trailSpaceBackMap = of(TagStart_, TagStart, TagName_, TagAttr, TagAttr_, TagAttr, TagAttrEQ_, TagAttrValue);
-    private boolean gotSpace = false;
+
     public boolean handleSpace(char c) {
         // special case SPACE
         if (trailSpaceMap.containsKey(state) || trailSpaceMap.containsValue(state)) {
@@ -122,9 +121,6 @@ public class ModeParser {
         char c = 0;
         while (i < str.length()) {
             c = str.charAt(i);
-            if (state == Invalid) {
-                throw new ParseException("Invalid state at [" + row + ":" + col +"] char '"+ c + "'", row, col);
-            }
             newState = Invalid;
 
             if (!handleSpace(c)) {
@@ -156,19 +152,7 @@ public class ModeParser {
                         newState = TagAttr;
                     }
                     // Before Tag End
-                } else if (state == TagName_) {
-                    if (isAlnum(c)) {
-                        newState = TagAttr;
-                    }
-                    // Before Tag End
                 } else if (state == TagAttr) {
-                    if (isAlnum(c)) {
-                        newState = TagAttr;
-                    } else if (isEQ(c)) {
-                        newState = TagAttrEQ;
-                    }
-                    // Before Tag End
-                } else if (state == TagAttr_) {
                     if (isAlnum(c)) {
                         newState = TagAttr;
                     } else if (isEQ(c)) {
@@ -199,9 +183,6 @@ public class ModeParser {
                         newState = TagStart;
                     } else {
                         newState = C2;
-                    }
-                    if (mode == OpenTag || mode == CloseTag) {
-                        mode = Text;
                     }
                 } else if (state == C1) {
                     if (isBlank(c)) {
@@ -236,6 +217,11 @@ public class ModeParser {
                     case TagName:
                         String tagname = getTagname();
                         appendTagstartBuffer();
+                        break;
+                    case TagEnd:
+                        if (mode == OpenTag || mode == CloseTag) {
+                            mode = Text;
+                        }
                         break;
                     case C1:
                         appendBlankBuffer();
@@ -304,6 +290,9 @@ public class ModeParser {
 
 
             state = newState;
+            if (state == Invalid) {
+                throw new ParseException("Invalid state at [" + row + ":" + col +"] char '"+ c + "'", row, col);
+            }
             advance();
         }
 
