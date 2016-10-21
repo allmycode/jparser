@@ -146,6 +146,15 @@ public class ModeParser {
                     $(C2))
     );
 
+    public void advance() {
+        i++;
+        col++;
+        if (i < str.length() && str.charAt(i) == '\n') {
+            row++;
+            col = 0;
+        }
+    }
+
     public void parse() {
         state = Start;
         mode = Text;
@@ -174,6 +183,8 @@ public class ModeParser {
                         newState = TagAttrVString_;
                     } else if (c == '\\') {
                         stringEscape = c;
+                        advance();
+                        continue;
                     }
                 }
             }
@@ -189,12 +200,7 @@ public class ModeParser {
                 throw new ParseException("Invalid state at [" + row + ":" + col +"] char '"+ c + "'", row, col);
             }
 
-            i++;
-            col++;
-            if (i < str.length() && str.charAt(i) == '\n') {
-                row++;
-                col = 0;
-            }
+            advance();
         }
         processStateTransition('Z', state, EOF);
 
@@ -234,7 +240,7 @@ public class ModeParser {
 
                 case TagAttrValue:
                 case TagAttrVString_:
-                    System.out.println("Found attribute:" + attributeBuffer + " = " + valueBuffer);
+                    //System.out.println("Found attribute:" + attributeBuffer + " = " + valueBuffer);
                     attributeBuffer = new StringBuilder();
                     valueBuffer = new StringBuilder();
                     break;
@@ -265,8 +271,6 @@ public class ModeParser {
                         System.out.println("Found attribute:" + attributeBuffer);
                     }
                     attributeBuffer = new StringBuilder();
-                    attributeBuffer = new StringBuilder();
-                    appendBlankBuffer();
                     break;
                 case C3:
                     cleanBlankBuffer();
@@ -288,30 +292,17 @@ public class ModeParser {
         if (newState.isBlank()) {
             putBlankBuffer(c);
         }
-        if (newState.isDumpToText()) {
-            putTextBuffer(c);
-        }
-
         switch (newState) {
             case TagName:
                 putTagnameBuffer(c);
             case TagStart:
             case TagStartSlash:
-                putTagstartBuffer(c);
-                break;
-
             case TagEndSlash:
                 putTagstartBuffer(c);
                 break;
 
-
             case TagAttr:
-                if (!isBlank(c) && removeWhitespaces) {
-                    appendBlankBuffer3();
-                }
-                if (!isBlank(c)) {
-                    putTextBuffer(c);
-                }
+                appendBlankBuffer3();
                 attributeBuffer.append(c);
                 break;
 
@@ -320,10 +311,7 @@ public class ModeParser {
                 break;
 
             case TagAttrVString:
-                if (stringEscape == 0) {
-                    putTextBuffer(c);
-                    valueBuffer.append(c);
-                }
+                valueBuffer.append(c);
                 break;
 
             case TagAttrVString_:
@@ -333,6 +321,9 @@ public class ModeParser {
             case C3:
                 putBlankBuffer(c);
                 break;
+        }
+        if (newState.isDumpToText()) {
+            putTextBuffer(c);
         }
     }
 
