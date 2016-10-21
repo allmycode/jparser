@@ -1,7 +1,8 @@
 package modeparser;
 
+import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import parse2.ParseException;
@@ -45,6 +46,7 @@ public class ModeParser {
         TagAttr,
         TagAttr_,
         TagAttrEQ,
+        TagAttrEQ_,
         TagAttrValue,
         C1,
         C2,
@@ -66,7 +68,7 @@ public class ModeParser {
         this.removeWhitespaces = removeWhitespaces;
     }
 
-    public void inc() {
+    public void advance() {
         i++;
         col++;
         if (i < str.length() && str.charAt(i) == '\n') {
@@ -75,44 +77,54 @@ public class ModeParser {
         }
     }
 
-    public char getChar() {
-        char c = str.charAt(i);
-        return c;
+    private Set<State> trailSpace = EnumSet.of(TagStart, TagStartSlash, TagName, TagAttr, TagAttrValue, TagAttrEQ);
+    Map<State, State> of(State ... states) {
+        Map<State, State> res = new EnumMap<>(State.class);
+        for (int i = 0; i < states.length; i+=2) {
+            res.put(states[i], states[i+1]);
+        }
+        return res;
+    }
+    private Map<State, State> trailSpaceMap = of(TagName, TagName_, TagAttr, TagAttr_, TagAttrEQ, TagAttrEQ_);
+    private boolean gotSpace = false;
+    public boolean handleSpace(char c) {
+        // special case SPACE
+        if (trailSpace.contains(state)) {
+            if (isBlank(c)) {
+                if (!gotSpace) {
+                    cleanBlankBuffer();
+                }
+                gotSpace = true;
+                putBlankBuffer(c);
+                return true;
+            } else {
+                if (gotSpace) {
+                    appendBlankBuffer();
+                }
+            }
+        }
+        return false;
     }
 
-
     private Set<State> beforeTagClose = EnumSet.of(TagName, TagAttr, TagAttrValue);
-    private Set<State> trailSpace = EnumSet.of(TagStart, TagStartSlash, TagName, TagAttr, TagAttrValue, TagAttrEQ);
-    private boolean gotSpace = false;
+
 
     public void parse() {
         state = Start;
         mode = Text;
         i = 0;
         char c = 0;
-        State newState = null;
+        State newState;
         while (i < str.length()) {
-            c = getChar();
+            c = str.charAt(i);
             if (state == Invalid) {
-                throw new ParseException("Invalid state at [" + row + ":" + col +"] char '"+ getChar() + "'", row, col);
+                throw new ParseException("Invalid state at [" + row + ":" + col +"] char '"+ c + "'", row, col);
             }
             newState = Invalid;
 
-            // special case SPACE
-            if (trailSpace.contains(state)) {
-                if (isBlank(c)) {
-                    if (!gotSpace) {
-                        cleanBlankBuffer();
-                    }
-                    gotSpace = true;
-                    putBlankBuffer(c);
-                    inc();
-                    continue;
-                } else {
-                    if (gotSpace) {
-                        appendBlankBuffer();
-                    }
-                }
+            if (handleSpace(c)) {
+                advance();
+                continue;
             }
             // Before Tag Close States
             if (beforeTagClose.contains(state)) {
@@ -298,7 +310,7 @@ public class ModeParser {
 
 
             state = newState;
-            inc();
+            advance();
         }
 
     }
