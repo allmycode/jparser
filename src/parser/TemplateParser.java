@@ -62,7 +62,7 @@ public class TemplateParser {
                         currentTag = tagName;
                     }
                     skipSpaces();
-                } else if (symClass == SymbolClasses.SL) {
+                } else if (symClass == SymbolClasses.SLASH) {
                     state = TAG_BACKSLASH_FIRST;
                     skipSpaces();
                 } else if (symClass == SymbolClasses.GT) {
@@ -72,7 +72,7 @@ public class TemplateParser {
                 }
             }
             else if (state == TAG_NAME) {
-                if (symClass == SymbolClasses.SL) {
+                if (symClass == SymbolClasses.SLASH) {
                     state = TAG_BACKSLASH_LAST;
                 } else if (symClass == SymbolClasses.GT) {
                     state = TAG_CLOSE;

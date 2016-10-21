@@ -8,7 +8,7 @@ import static parse2.DQStringDFA.States.*;
 import static parse2.States.INVALID;
 import static parse2.SymbolClasses.BSL;
 import static parse2.SymbolClasses.DQ;
-import static parse2.SymbolClasses.Q;
+import static parse2.SymbolClasses.SQ;
 
 public class DQStringDFA extends TableDFA<Character> {
 
@@ -49,11 +49,11 @@ public class DQStringDFA extends TableDFA<Character> {
     List<Token> tokens;
 
     public DQStringDFA() {
-        define(tr(START, INVALID, p(DQ, STRING_DQ), p(Q, STRING_Q)),
+        define(tr(START, INVALID, p(DQ, STRING_DQ), p(SQ, STRING_Q)),
                 tr(STRING_DQ, STRING_DQ, p(DQ, FINISH), p(BSL, ESCAPE_DQ)),
                 tr(ESCAPE_DQ, INVALID, p(DQ, STRING_DQ), p(BSL, STRING_DQ)),
-                tr(STRING_Q, STRING_Q, p(Q, FINISH), p(BSL, ESCAPE_Q)),
-                tr(ESCAPE_Q, INVALID, p(Q, STRING_Q), p(BSL, STRING_Q))
+                tr(STRING_Q, STRING_Q, p(SQ, FINISH), p(BSL, ESCAPE_Q)),
+                tr(ESCAPE_Q, INVALID, p(SQ, STRING_Q), p(BSL, STRING_Q))
                 );
     }
 

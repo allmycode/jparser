@@ -1,13 +1,16 @@
 package modeparser;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import parse2.L2SymbolClasses;
 import parse2.ParseException;
+import parse2.SymbolClass;
+import parse2.SymbolClasses;
 import parser.LexemNode;
 import static modeparser.CharUtil.isAlnum;
 import static modeparser.CharUtil.isBlank;
@@ -19,6 +22,10 @@ import static modeparser.CharUtil.isAlnum_Col;
 import static modeparser.CharUtil.isStringBound;
 import static modeparser.ModeParser.Mode.*;
 import static modeparser.ModeParser.State.*;
+
+import static parse2.L2SymbolClasses.*;
+import static parse2.SymbolClasses.*;
+
 public class ModeParser {
     enum Mode {
         Text,
@@ -76,6 +83,154 @@ public class ModeParser {
         this.removeWhitespaces = removeWhitespaces;
     }
 
+    static class StateTransitions {
+        public final State from;
+        public final Map<SymbolClass, State> transitions;
+
+        public StateTransitions(State from, Map<SymbolClass, State> transitions) {
+            this.from = from;
+            this.transitions = transitions;
+        }
+    }
+    public Map<State, Map<SymbolClass, State>> define(StateTransitions... sts) {
+        Map<State, Map<SymbolClass, State>> res = new HashMap<>();
+        for (StateTransitions o : sts) {
+            res.put(o.from, o.transitions);
+        }
+        return res;
+    }
+
+    static class Transition {
+        final SymbolClass sym;
+        final State to;
+
+        public Transition(SymbolClass sym, State to) {
+            this.sym = sym;
+            this.to = to;
+        }
+    }
+
+    public static Transition $(SymbolClass sym, State to) {
+        return new Transition(sym, to);
+    }
+
+    public static Transition $(State to) {
+        return new Transition(null, to);
+    }
+
+    public static StateTransitions tr(State from, Transition... ots) {
+        Map<SymbolClass, State> res = new HashMap<>();
+        for (Transition o : ots) {
+            if (o.sym == null) {
+                for (SymbolClass sym : SymbolClasses.values()) {
+                    if (res.get(sym) == null) {
+                        res.put(sym, o.to);
+                    }
+                }
+                continue;
+            }
+            if (o.sym instanceof L2SymbolClasses) {
+                for (SymbolClass realSym : ((L2SymbolClasses) o.sym).symClasses) {
+                    res.put(realSym, o.to);
+                }
+            } else {
+                res.put(o.sym, o.to);
+            }
+        }
+        return new StateTransitions(from, res);
+    }
+
+    Map<State, Map<SymbolClass, State>> transitions = define(
+            tr(Start,
+                    $(LT, TagStart)),
+            tr(TagStart,
+                    $(ALNUM_COL, TagName),
+                    $(SLASH, TagStartSlash),
+                    $(BLANK, TagStart_)),
+            tr(TagStart_,
+                    $(ALNUM_COL, TagName),
+                    $(SLASH, TagStartSlash),
+                    $(BLANK, TagStart_)),
+            tr (TagName,
+                    $(ALNUM_COL, TagName),
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagName_)),
+            tr (TagName_,
+                    $(ALNUM_COL, TagAttr),
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagName_)),
+            tr (TagAttr,
+                    $(ALNUM_, TagAttr),
+                    $(EQ, TagAttrEQ),
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagAttr_)),
+            tr (TagAttr_,
+                    $(ALNUM_, TagAttr),
+                    $(EQ, TagAttrEQ),
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagAttr_)),
+            tr (TagAttrEQ,
+                    $(ALNUM_, TagAttrValue),
+                    $(SQ, TagAttrVString),
+                    $(DQ, TagAttrVString),
+                    $(BLANK, TagAttrEQ_)),
+            tr (TagAttrEQ_,
+                    $(ALNUM_, TagAttrValue),
+                    $(SQ, TagAttrVString),
+                    $(DQ, TagAttrVString),
+                    $(BLANK, TagAttrEQ_)),
+            tr (TagAttrValue,
+                    $(ALNUM_, TagAttrValue),
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagAttr_)),
+            // String TagAttrVString treated specially
+            tr (TagAttrVString,
+                    $(TagAttrVString)),
+            tr (TagAttrVString_,
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagAttrVString__)),
+            tr (TagAttrVString__,
+                    $(ALNUM_, TagAttr),
+                    $(SLASH, TagEndSlash),
+                    $(GT, TagEnd),
+                    $(BLANK, TagAttrVString__)),
+            tr(TagEndSlash,
+                    $(GT, TagEnd)),
+            // Maybe need blank
+            tr(TagStartSlash,
+                    $(ALNUM_COL, TagName)),
+            tr(TagEnd,
+                    $(LT, TagStart),
+                    $(BLANK, C1),
+                    $(C2)),
+            tr(C1,
+                    $(LT, TagStart),
+                    $(BLANK, C1),
+                    $(C2)),
+            tr(C2,
+                    $(LT, TagStart),
+                    $(BLANK, C3),
+                    $(C2)),
+            tr(C3,
+                    $(LT, TagStart),
+                    $(BLANK, C3),
+                    $(C2))
+    );
+
+    public State getNext(State from, SymbolClass by) {
+        Map<SymbolClass, State> stateTransitions = transitions.get(from);
+        if (stateTransitions == null) {
+            throw new ParseException("No transitions from " + from, row, col);
+        }
+        return stateTransitions.get(by);
+    }
+
     public void advance() {
         i++;
         col++;
@@ -84,15 +239,6 @@ public class ModeParser {
             col = 0;
         }
     }
-
-    Map<State, State> of(State ... states) {
-        Map<State, State> res = new EnumMap<>(State.class);
-        for (int i = 0; i < states.length; i+=2) {
-            res.put(states[i], states[i+1]);
-        }
-        return res;
-    }
-
     private Set<State> beforeTagClose = EnumSet.of(TagName, TagName_, TagAttr, TagAttr_, TagAttrValue, TagAttrVString_, TagAttrVString__);
     TokenRange ct;
 
@@ -179,7 +325,7 @@ public class ModeParser {
                 break;
 
             case TagAttr:
-                if (!isBlank(c)  && removeWhitespaces) {
+                if (!isBlank(c) && removeWhitespaces) {
                     putTextBuffer(' ');
                 }
                 if (!isBlank(c)) {
@@ -212,6 +358,7 @@ public class ModeParser {
         char c = 0;
         while (i < str.length()) {
             c = str.charAt(i);
+            SymbolClass symClass = SymbolClasses.translate.apply(c);
             newState = Invalid;
 
             if (state == TagAttrVString) {
@@ -233,7 +380,12 @@ public class ModeParser {
                     }
                 }
             }
+            State candidate = getNext(state, symClass);
+            if (candidate != null && newState == Invalid) {
+                newState = candidate;
+            }
 
+            /*
             // Before Tag Close States
             if (beforeTagClose.contains(state)) {
                 if (isSlash(c)) {
@@ -379,7 +531,7 @@ public class ModeParser {
                 } else {
                     newState = C2;
                 }
-            }
+            }*/
             runActions(c);
 
 

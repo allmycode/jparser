@@ -11,16 +11,17 @@ public enum SymbolClasses implements SymbolClass {
     EXCL,
     DASH,
     DQ,
-    Q,
+    SQ,
     EQ,
     BSL,
-    SL,
+    SLASH,
     ALPHA,
     NUM,
     PLUS,
     MUL,
     DOT,
     UNDERSCORE,
+    COLON,
     DOLLAR,
     CUR_OPEN,
     CUR_CLOSE
@@ -45,13 +46,13 @@ public enum SymbolClasses implements SymbolClass {
             case '"':
                 return DQ;
             case '\'':
-                return Q;
+                return SQ;
             case '=':
                 return EQ;
             case '\\':
                 return BSL;
             case '/':
-                return SL;
+                return SLASH;
             case '+':
                 return PLUS;
             case '*':
@@ -60,6 +61,8 @@ public enum SymbolClasses implements SymbolClass {
                 return DOT;
             case '_':
                 return UNDERSCORE;
+            case ':':
+                return COLON;
             case '$':
                 return DOLLAR;
             case '{':

@@ -2,7 +2,7 @@ package modeparser;
 
 public class Main {
     public static void main(String[] args) {
-        checkTR("<n a=\"v\" d>");
+        checkTR("<n a=\"v'\" d>");
     }
 
 

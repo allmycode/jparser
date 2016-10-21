@@ -85,8 +85,8 @@ public class HTMLDFA extends TableDFA<Character> {
     public HTMLDFA() {
         define( tr(S00, S0, p(LT, S1), p(GT, INVALID)),
                 tr(S0, S0, p(LT, S1), p(GT, INVALID)),
-                tr(S1, p(BLANK, S1_), p(EXCL, S2), p(ALPHA, ST), p(SL, STCSL)),
-                tr(S1_, p(BLANK, S1_), p(EXCL, S2), p(ALPHA, ST), p(SL, STCSL)),
+                tr(S1, p(BLANK, S1_), p(EXCL, S2), p(ALPHA, ST), p(SLASH, STCSL)),
+                tr(S1_, p(BLANK, S1_), p(EXCL, S2), p(ALPHA, ST), p(SLASH, STCSL)),
                 tr(S2, p(DASH, S3)),
                 tr(S3, p(DASH, S4)),
                 tr(S4, S5, p(DASH, S6)),
@@ -94,13 +94,13 @@ public class HTMLDFA extends TableDFA<Character> {
                 tr(S6, S5, p(DASH, S7)),
                 tr(S7, S5, p(DASH, S7), p(GT, S8)),
                 tr(S8, S0, p(LT, S1), p(GT, INVALID)),
-                tr(ST, p(ALNUM, ST), p(BLANK, ST_), p(SL, STSL), p(GT, S8)),
-                tr(ST_, p(ALPHA, SA), p(BLANK, ST_), p(SL, STSL), p(GT, S8)),
-                tr(SA, p(ALNUM, SA), p(BLANK, SA_), p(EQ, SAE), p(SL, STSL), p(GT, S8)),
-                tr(SA_, p(BLANK, SA_), p(ALPHA, SA), p(EQ, SAE), p(SL, STSL), p(GT, S8)),
-                tr(SAE, p(ALNUM, SV), p(DQ, STR), p(Q, STR), p(DOLLAR, DSING_V)),
-                tr(SV, p(ALNUM, SV),p(SL, STSL), p(BLANK, ST_), p(GT, S8)),
-                tr(STR_, p(BLANK, ST_), p(SL, STSL), p(GT, S8)),
+                tr(ST, p(ALNUM, ST), p(BLANK, ST_), p(SLASH, STSL), p(GT, S8)),
+                tr(ST_, p(ALPHA, SA), p(BLANK, ST_), p(SLASH, STSL), p(GT, S8)),
+                tr(SA, p(ALNUM, SA), p(BLANK, SA_), p(EQ, SAE), p(SLASH, STSL), p(GT, S8)),
+                tr(SA_, p(BLANK, SA_), p(ALPHA, SA), p(EQ, SAE), p(SLASH, STSL), p(GT, S8)),
+                tr(SAE, p(ALNUM, SV), p(DQ, STR), p(SQ, STR), p(DOLLAR, DSING_V)),
+                tr(SV, p(ALNUM, SV),p(SLASH, STSL), p(BLANK, ST_), p(GT, S8)),
+                tr(STR_, p(BLANK, ST_), p(SLASH, STSL), p(GT, S8)),
                 tr(STSL, p(GT, S8)),
                 tr(STCSL, p(BLANK, STCSL_), p(ALPHA, STCT)),
                 tr(STCSL_, p(BLANK, STCSL_), p(ALPHA, STCT)),
@@ -172,7 +172,7 @@ public class HTMLDFA extends TableDFA<Character> {
             breakSet.add(LINE_BREAK);
             breakSet.add(SPACE);
             breakSet.add(DQ);
-            breakSet.add(Q);
+            breakSet.add(SQ);
             breakSet.add(GT);
             breakSet.add(LT);
             expressionDFA.execute(it, SymbolClasses.translate, expressionDFA, tokens1, true, false, breakSet);

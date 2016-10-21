@@ -15,12 +15,9 @@ import static parse2.L2SymbolClasses.OP_NODOT;
 import static parse2.SymbolClasses.ALPHA;
 import static parse2.SymbolClasses.DOT;
 import static parse2.SymbolClasses.DQ;
-import static parse2.SymbolClasses.LINE_BREAK;
 import static parse2.SymbolClasses.NUM;
-import static parse2.SymbolClasses.Q;
-import static parse2.SymbolClasses.SPACE;
+import static parse2.SymbolClasses.SQ;
 import static parse2.SymbolClasses.UNDERSCORE;
-import static parse2.TokenType.Attrvalue;
 
 public class ExpressionDFA extends TableDFA<Character> {
     enum States implements State {
@@ -65,12 +62,12 @@ public class ExpressionDFA extends TableDFA<Character> {
 
     public ExpressionDFA() {
         define(
-                tr(BASE, p(NUM, NUM1), p(ALPHA, IDENTIFIER), p(UNDERSCORE, IDENTIFIER), p(OP, OPST), p(Q, STR), p(DQ, STR), p(BLANK, BASE)),
+                tr(BASE, p(NUM, NUM1), p(ALPHA, IDENTIFIER), p(UNDERSCORE, IDENTIFIER), p(OP, OPST), p(SQ, STR), p(DQ, STR), p(BLANK, BASE)),
                 tr(NUM1, p(NUM, NUM1), p(DOT, NUM_DOT), p(BLANK, BASE), p(OP_NODOT, OPST)),
                 tr(NUM_DOT, p(NUM, NUM2)),
                 tr(NUM2, p(NUM, NUM2), p(BLANK, BASE), p(OP_NODOT, OPST)),
                 tr(IDENTIFIER, p(ALNUM, IDENTIFIER), p(UNDERSCORE, IDENTIFIER), p(BLANK, BASE), p(OP, OPST)),
-                tr(OPST, p(BLANK, BASE), p(ALNUM, IDENTIFIER), p(UNDERSCORE, IDENTIFIER), p(NUM, NUM1), p(Q, STR), p(DQ, STR)),
+                tr(OPST, p(BLANK, BASE), p(ALNUM, IDENTIFIER), p(UNDERSCORE, IDENTIFIER), p(NUM, NUM1), p(SQ, STR), p(DQ, STR)),
                 tr(STR_, p(OP, OPST), p(BLANK, BASE))
         );
     }
