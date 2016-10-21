@@ -1,6 +1,7 @@
-package parse2;
+package modeparse;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import modeparser.ModeParser;
@@ -38,7 +39,7 @@ public class ModeParserTest2 {
         System.out.println("\n==================\n");
     }
 
-    @Test
+    //@Test
     public void noTest() {
         checkTR("<n>");
         checkTR("<n >");
@@ -47,6 +48,7 @@ public class ModeParserTest2 {
         checkTR("<name a/>");
         checkTR("<name a/> hello world <no_name>");
         checkTR("<ui:name>text</ui:name s>");
+        checkTR("<n a=\"v\" d>");
     }
 
     @Test
@@ -77,5 +79,11 @@ public class ModeParserTest2 {
     public void testLong2() {
         check("<ui:name>text</ui:name s>", new TokenRange[]{tr(TagStart, 0, 1), tr(TagName, 1, 8), tr(TagEnd, 8, 9), tr(C2, 9, 13), tr(TagStart, 13, 14), tr(TagStartSlash, 14, 15), tr(TagName, 15, 22), tr(TagName_, 22, 23), tr(TagAttr, 23, 24), tr(TagEnd, 24, 25)});
     }
+
+    @Test
+    public void testString0() {
+        check("<n a=\"v\" d>", new TokenRange[]{tr(TagStart, 0, 1), tr(TagName, 1, 2), tr(TagName_, 2, 3), tr(TagAttr, 3, 4), tr(TagAttrEQ, 4, 5), tr(TagAttrVString, 5, 8), tr(TagAttrVString__, 8, 9), tr(TagAttr, 9, 10), tr(TagEnd, 10, 11)});
+    }
+
 
 }
