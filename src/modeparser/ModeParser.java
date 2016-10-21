@@ -10,7 +10,6 @@ import parse2.SymbolClasses;
 import parser.Attribute;
 import parser.LexemNode;
 import parser.LexemType;
-import static modeparser.CharUtil.isBlank;
 import static modeparser.ModeParser.Mode.*;
 import static modeparser.State.*;
 
@@ -54,6 +53,32 @@ public class ModeParser {
     private int row;
     private int col;
     private String str;
+
+    public Buffer tagstartBuffer = new Buffer();
+    public Buffer tagnameBuffer = new Buffer();
+
+    public Buffer text = new Buffer();
+
+    public Buffer blankBuffer = new Buffer();
+
+    void appendBlankBuffer() {
+        if (!removeWhitespaces) {
+            if (state == TagStart || state == TagStart_ || state == TagName) {
+                tagstartBuffer.append(blankBuffer);
+            } else {
+                text.append(blankBuffer);
+            }
+        }
+    }
+
+    void appendBlankBufferOrSpace() {
+        if (!removeWhitespaces) {
+            text.append(blankBuffer);
+        } else if (blankBuffer.length() > 0){
+            text.append(' ');
+            blankBuffer.clean();
+        }
+    }
 
     public ModeParser(String str, boolean removeWhitespaces) {
         this.str = str;
@@ -177,6 +202,9 @@ public class ModeParser {
                     if (c == 't') {
                         c = '\t';
                     }
+                    if (c == '\\') {
+                        c = '\\';
+                    }
                     stringEscape = 0;
                 } else {
                     if (c == stringBound) {
@@ -224,12 +252,12 @@ public class ModeParser {
             }
             switch (state) {
                 case TagName:
-                    String tagname = getTagname();
+                    String tagname = tagnameBuffer.toString();
                     if (tagname.startsWith("ui:")) {
                         customTagname = tagname;
                         processModeTransition(OpenTag);
                     } else {
-                        appendTagstartBuffer();
+                        text.append(tagstartBuffer);
                     }
                     break;
                 case TagEnd:
@@ -248,7 +276,7 @@ public class ModeParser {
 
                 case C3:
                     if (newState == C2) {
-                        appendBlankBuffer2();
+                        text.append(blankBuffer);
                     }
                     break;
 
@@ -256,15 +284,15 @@ public class ModeParser {
             // - - - - - -
             // enter state
             if (newState.isBlank()) {
-                cleanBlankBuffer();
+                blankBuffer.clean();
             }
             switch (newState) {
                 case TagStart:
                     appendBlankBuffer();
-                    cleanTagstartBuffer();
+                    tagstartBuffer.clean();
                     break;
                 case TagName:
-                    cleanTagnameBuffer();
+                    tagnameBuffer.clean();
                     break;
                 case TagAttr:
                     if (attributeBuffer.length() > 0) {
@@ -273,7 +301,7 @@ public class ModeParser {
                     attributeBuffer = new StringBuilder();
                     break;
                 case C3:
-                    cleanBlankBuffer();
+                    blankBuffer.clean();
                     break;
 
                 case TagAttrVString:
@@ -290,19 +318,19 @@ public class ModeParser {
         }
         // in state
         if (newState.isBlank()) {
-            putBlankBuffer(c);
+            blankBuffer.append(c);
         }
         switch (newState) {
             case TagName:
-                putTagnameBuffer(c);
+                tagnameBuffer.append(c);
             case TagStart:
             case TagStartSlash:
             case TagEndSlash:
-                putTagstartBuffer(c);
+                tagstartBuffer.append(c);
                 break;
 
             case TagAttr:
-                appendBlankBuffer3();
+                appendBlankBufferOrSpace();
                 attributeBuffer.append(c);
                 break;
 
@@ -319,11 +347,11 @@ public class ModeParser {
                 break;
 
             case C3:
-                putBlankBuffer(c);
+                blankBuffer.append(c);
                 break;
         }
         if (newState.isDumpToText()) {
-            putTextBuffer(c);
+            text.append(c);
         }
     }
 
@@ -332,7 +360,7 @@ public class ModeParser {
             if (mode != newMode) {
                 if (mode == Text && newMode == OpenTag) {
                     currentLexemNode.add(new LexemNode(LexemType.Static, text.toString()));
-                    cleanTextBuffer();
+                    text.clean();
                     pushLexemNode(new LexemNode(LexemType.Tag, "TAG"));
                 }
                 if (mode == Text && newMode == CloseTag) {
@@ -364,77 +392,4 @@ public class ModeParser {
     public StringBuilder attributeBuffer = new StringBuilder();
     public StringBuilder valueBuffer = new StringBuilder();
 
-    public StringBuilder text = new StringBuilder();
-    void cleanTextBuffer() {
-        text.delete(0, text.length());
-    }
-    void putTextBuffer(char c) {
-        if (mode == Text) {
-            text.append(c);
-        }
-    }
-
-    StringBuilder blankBuffer = new StringBuilder();
-    void cleanBlankBuffer() {
-        blankBuffer.delete(0, blankBuffer.length());
-    }
-    void putBlankBuffer(char c) {
-        if (mode == Text) {
-            blankBuffer.append(c);
-        }
-    }
-    void appendBlankBuffer() {
-        if (mode == Text && !removeWhitespaces) {
-            if (state == TagStart || state == TagStart_ || state == TagName) {
-                tagstartBuffer.append(blankBuffer);
-            } else {
-                text.append(blankBuffer);
-            }
-            cleanBlankBuffer();
-        }
-    }
-    void appendBlankBuffer2() {
-        text.append(blankBuffer);
-        cleanBlankBuffer();
-    }
-
-    void appendBlankBuffer3() {
-        if (mode == Text) {
-            if (!removeWhitespaces) {
-                text.append(blankBuffer);
-            } else if (blankBuffer.length() > 0){
-                text.append(' ');
-            }
-        }
-        cleanBlankBuffer();
-    }
-
-    StringBuilder tagstartBuffer = new StringBuilder();
-    void cleanTagstartBuffer() {
-        tagstartBuffer.delete(0, tagstartBuffer.length());
-    }
-    void putTagstartBuffer(char c) {
-        if (mode == Text) {
-            tagstartBuffer.append(c);
-        }
-    }
-    void appendTagstartBuffer() {
-        if (mode == Text) {
-            text.append(tagstartBuffer);
-            cleanTagstartBuffer();
-        }
-    }
-
-    StringBuilder tagnameBuffer = new StringBuilder();
-    void cleanTagnameBuffer() {
-        tagnameBuffer.delete(0, tagnameBuffer.length());
-    }
-    void putTagnameBuffer(char c) {
-        if (mode == Text) {
-            tagnameBuffer.append(c);
-        }
-    }
-    String getTagname() {
-        return tagnameBuffer.toString();
-    }
 }

@@ -141,4 +141,10 @@ public class ModeParserTest1 {
     @Test public void testStringAttrSQ2() {
         checkR("<n   a  =  'v\"\\n'    d>", "<n a='v\"\n' d>");
     }
+
+
+    @Test public void testStringAttrSQ_ESC_() {
+        checkE("<n a='a\\\\b' d>", "<n a='a\\b' d>");
+    }
+
 }
