@@ -16,6 +16,10 @@ public class ModeParserTest1 {
         Assert.assertEquals(s, check(s, false));
     }
 
+    public void checkE(String s, String e) {
+        Assert.assertEquals(e, check(s, false));
+    }
+
     public void checkR(String s, String r) {
         Assert.assertEquals(r, check(s, true));
     }
@@ -108,5 +112,33 @@ public class ModeParserTest1 {
         checkR("< g a b=1>", "<g a b=1>");
         checkR("< g a b =1>", "<g a b=1>");
         checkR("< g a b = 1 f=g>", "<g a b=1 f=g>");
+    }
+
+    @Test public void testStringAttrDQ_() {
+        checkE("<n a=\"v'\\n\" d>", "<n a=\"v'\n\" d>");
+    }
+
+    @Test public void testStringAttrDQ() {
+        checkR("<n a=\"v'\\n\" d>", "<n a=\"v'\n\" d>");
+    }
+
+    @Test public void testStringAttrDQ2() {
+        checkR("<n   a=  \"v'\\n\"   d >", "<n a=\"v'\n\" d>");
+    }
+
+    @Test public void testStringAttrDQ3() {
+        checkR("<n   a=  \"v'\\n\"   d >  hello   world  </  n >", "<n a=\"v'\n\" d>hello   world</n>");
+    }
+
+    @Test public void testStringAttrSQ_() {
+        checkE("<n a='v\"\\n' d>", "<n a='v\"\n' d>");
+    }
+
+    @Test public void testStringAttrSQ() {
+        checkR("<n a='v\"\\n' d>", "<n a='v\"\n' d>");
+    }
+
+    @Test public void testStringAttrSQ2() {
+        checkR("<n   a  =  'v\"\\n'    d>", "<n a='v\"\n' d>");
     }
 }
