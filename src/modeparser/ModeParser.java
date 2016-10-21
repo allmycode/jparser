@@ -38,6 +38,7 @@ public class ModeParser {
         Invalid,
         Start,
         TagStart,
+        TagStart_,
         TagName,
         TagName_,
         TagEndSlash,
@@ -55,6 +56,7 @@ public class ModeParser {
     }
 
     private State state;
+    State newState;
 
     private int i;
     private int row;
@@ -85,21 +87,25 @@ public class ModeParser {
         }
         return res;
     }
-    private Map<State, State> trailSpaceMap = of(TagName, TagName_, TagAttr, TagAttr_, TagAttrEQ, TagAttrEQ_);
+    private Map<State, State> trailSpaceMap = of(TagStart, TagStart_, TagName, TagName_, TagAttr, TagAttr_, TagAttrEQ, TagAttrEQ_, TagAttrValue, TagAttr);
+    private Map<State, State> trailSpaceBackMap = of(TagStart_, TagStart, TagName_, TagAttr, TagAttr_, TagAttr, TagAttrEQ_, TagAttrValue);
     private boolean gotSpace = false;
     public boolean handleSpace(char c) {
         // special case SPACE
-        if (trailSpace.contains(state)) {
+        if (trailSpaceMap.containsKey(state) || trailSpaceMap.containsValue(state)) {
             if (isBlank(c)) {
-                if (!gotSpace) {
+                if (trailSpaceMap.containsKey(state)) {
+                    newState = trailSpaceMap.get(state);
                     cleanBlankBuffer();
+                } else {
+                    newState = state;
                 }
-                gotSpace = true;
                 putBlankBuffer(c);
                 return true;
             } else {
-                if (gotSpace) {
+                if (trailSpaceBackMap.containsKey(state)) {
                     appendBlankBuffer();
+                    state = trailSpaceBackMap.get(state);
                 }
             }
         }
@@ -114,7 +120,6 @@ public class ModeParser {
         mode = Text;
         i = 0;
         char c = 0;
-        State newState;
         while (i < str.length()) {
             c = str.charAt(i);
             if (state == Invalid) {
@@ -122,121 +127,113 @@ public class ModeParser {
             }
             newState = Invalid;
 
-            if (handleSpace(c)) {
-                advance();
-                continue;
-            }
-            // Before Tag Close States
-            if (beforeTagClose.contains(state)) {
-                if (isSlash(c)) {
-                    newState = TagEndSlash;
-                } else if (isGT(c)) {
-                    newState = TagEnd;
-                }
-            }
+            if (!handleSpace(c)) {
 
-            if (state == Start) {
-                if (isLT(c)) {
-                    newState = TagStart;
-                }
-            } else if (state == TagStart) {
-                if (isAlnum_Col(c)) {
-                    newState = TagName;
-                } else if (isSlash(c) ) {
-                    newState = TagStartSlash;
-                }
-                // Before Tag End
-            } else if (state == TagName) {
-                if (gotSpace && newState == Invalid) {
-                    newState = TagAttr;
-                } else if (isAlnum_Col(c)) {
-                    newState = TagName;
-                } else if (isBlank(c) ) {
-                    newState = TagAttr;
-                }
-                // Before Tag End
-            } else if (state == TagName_) {
-                if (isAlnum(c)) {
-                    newState = TagAttr;
-                }
-                // Before Tag End
-            } else if (state == TagAttr) {
-                if (isAlnum(c)) {
-                    newState = TagAttr;
-                } else if (isEQ(c)) {
-                    newState = TagAttrEQ;
-                }
-                // Before Tag End
-            } else if (state == TagAttr_) {
-                if (isAlnum(c)) {
-                    newState = TagAttr;
-                } else if (isEQ(c)) {
-                    newState = TagAttrEQ;
-                }
-                // Before Tag End
-            } else if (state == TagAttrEQ) {
-                if (isAlnum(c)) {
-                    newState = TagAttrValue;
-                }
-            } else if (state == TagAttrValue) {
-                if (gotSpace) {
-                    newState = TagAttr;
-                } else if (isAlnum(c)) {
-                    newState = TagAttrValue;
-                }
-                // Before Tag End
-            } else if (state == TagEndSlash) {
-                if (isGT(c)) {
-                    newState = TagEnd;
-                }
-            } else if (state == TagStartSlash) {
-                if (isAlnum_Col(c)) {
-                    newState = TagName;
-                }
-            } else if (state == TagEnd) {
-                if (isBlank(c)) {
-                    newState = C1;
-                } else if (isLT(c)) {
-                    newState = TagStart;
-                } else {
-                    newState = C2;
-                }
-                if (mode == OpenTag || mode == CloseTag) {
-                    mode = Text;
-                }
-            } else if (state == C1) {
-                if (isBlank(c)) {
-                    newState = C1;
-                } else if (isLT(c)) {
-                    newState = TagStart;
-                } else {
-                    newState = C2;
+                // Before Tag Close States
+                if (beforeTagClose.contains(state)) {
+                    if (isSlash(c)) {
+                        newState = TagEndSlash;
+                    } else if (isGT(c)) {
+                        newState = TagEnd;
+                    }
                 }
 
-            } else if (state == C2) {
-                if (isBlank(c)) {
-                    newState = C3;
-                } else if (isLT(c)) {
-                    newState = TagStart;
-                } else {
-                    newState = C2;
-                }
-            } else if (state == C3) {
-                if (isBlank(c)) {
-                    newState = C3;
-                } else if (isLT(c)) {
-                    newState = TagStart;
-                } else {
-                    newState = C2;
+                if (state == Start) {
+                    if (isLT(c)) {
+                        newState = TagStart;
+                    }
+                } else if (state == TagStart) {
+                    if (isAlnum_Col(c)) {
+                        newState = TagName;
+                    } else if (isSlash(c)) {
+                        newState = TagStartSlash;
+                    }
+                    // Before Tag End
+                } else if (state == TagName) {
+                    if (isAlnum_Col(c)) {
+                        newState = TagName;
+                    } else if (isBlank(c)) {
+                        newState = TagAttr;
+                    }
+                    // Before Tag End
+                } else if (state == TagName_) {
+                    if (isAlnum(c)) {
+                        newState = TagAttr;
+                    }
+                    // Before Tag End
+                } else if (state == TagAttr) {
+                    if (isAlnum(c)) {
+                        newState = TagAttr;
+                    } else if (isEQ(c)) {
+                        newState = TagAttrEQ;
+                    }
+                    // Before Tag End
+                } else if (state == TagAttr_) {
+                    if (isAlnum(c)) {
+                        newState = TagAttr;
+                    } else if (isEQ(c)) {
+                        newState = TagAttrEQ;
+                    }
+                    // Before Tag End
+                } else if (state == TagAttrEQ) {
+                    if (isAlnum(c)) {
+                        newState = TagAttrValue;
+                    }
+                } else if (state == TagAttrValue) {
+                    if (isAlnum(c)) {
+                        newState = TagAttrValue;
+                    }
+                    // Before Tag End
+                } else if (state == TagEndSlash) {
+                    if (isGT(c)) {
+                        newState = TagEnd;
+                    }
+                } else if (state == TagStartSlash) {
+                    if (isAlnum_Col(c)) {
+                        newState = TagName;
+                    }
+                } else if (state == TagEnd) {
+                    if (isBlank(c)) {
+                        newState = C1;
+                    } else if (isLT(c)) {
+                        newState = TagStart;
+                    } else {
+                        newState = C2;
+                    }
+                    if (mode == OpenTag || mode == CloseTag) {
+                        mode = Text;
+                    }
+                } else if (state == C1) {
+                    if (isBlank(c)) {
+                        newState = C1;
+                    } else if (isLT(c)) {
+                        newState = TagStart;
+                    } else {
+                        newState = C2;
+                    }
+
+                } else if (state == C2) {
+                    if (isBlank(c)) {
+                        newState = C3;
+                    } else if (isLT(c)) {
+                        newState = TagStart;
+                    } else {
+                        newState = C2;
+                    }
+                } else if (state == C3) {
+                    if (isBlank(c)) {
+                        newState = C3;
+                    } else if (isLT(c)) {
+                        newState = TagStart;
+                    } else {
+                        newState = C2;
+                    }
                 }
             }
-            if (state != newState || gotSpace) {
+            if (state != newState) {
                 // leave state
                 switch (state) {
                     case TagName:
-                        if (mode == Text) {
-                            appendTagstartBuffer();
-                        }
                         String tagname = getTagname();
                         appendTagstartBuffer();
                         break;
@@ -261,8 +258,7 @@ public class ModeParser {
                         cleanTagnameBuffer();
                         break;
                     case TagAttr:
-                        //if (state != TagStart && removeWhitespaces)
-                        //    appendBlankBuffer3();
+                        appendBlankBuffer();
                         break;
                     case C1:
                     case C3:
@@ -270,8 +266,6 @@ public class ModeParser {
                         break;
 
                 }
-                gotSpace = false;
-
             }
             // in state
             switch (newState) {
@@ -283,7 +277,7 @@ public class ModeParser {
                     break;
 
                 case TagAttr:
-                    if (!isBlank(c) && !gotSpace && removeWhitespaces) {
+                    if (!isBlank(c)  && removeWhitespaces) {
                         putTextBuffer(' ');
                     }
                     if (!isBlank(c)) {
@@ -338,7 +332,7 @@ public class ModeParser {
     }
     void appendBlankBuffer() {
         if (mode == Text && !removeWhitespaces) {
-            if (state == TagStart || state == TagName) {
+            if (state == TagStart || state == TagStart_ || state == TagName) {
                 tagstartBuffer.append(blankBuffer);
             } else {
                 text.append(blankBuffer);
