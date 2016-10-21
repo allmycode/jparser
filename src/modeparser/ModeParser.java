@@ -59,7 +59,8 @@ public class ModeParser {
         ;
     }
 
-    private State state;
+    State state;
+    State lookupState;
     State newState;
 
     private int i;
@@ -108,7 +109,11 @@ public class ModeParser {
             } else {
                 if (trailSpaceBackMap.containsKey(state)) {
                     appendBlankBuffer();
-                    state = trailSpaceBackMap.get(state);
+                    //State sv = newState;
+                    lookupState = trailSpaceBackMap.get(state);
+                    //runActions(c);
+                    //state = newState;
+                    //newState = sv;
                 }
             }
         }
@@ -211,12 +216,13 @@ public class ModeParser {
         char c = 0;
         while (i < str.length()) {
             c = str.charAt(i);
+            lookupState = state;
             newState = Invalid;
 
             if (!handleSpace(c)) {
 
                 // Before Tag Close States
-                if (beforeTagClose.contains(state)) {
+                if (beforeTagClose.contains(lookupState)) {
                     if (isSlash(c)) {
                         newState = TagEndSlash;
                     } else if (isGT(c)) {
@@ -224,49 +230,49 @@ public class ModeParser {
                     }
                 }
 
-                if (state == Start) {
+                if (lookupState == Start) {
                     if (isLT(c)) {
                         newState = TagStart;
                     }
-                } else if (state == TagStart) {
+                } else if (lookupState == TagStart) {
                     if (isAlnum_Col(c)) {
                         newState = TagName;
                     } else if (isSlash(c)) {
                         newState = TagStartSlash;
                     }
                     // Before Tag End
-                } else if (state == TagName) {
+                } else if (lookupState == TagName) {
                     if (isAlnum_Col(c)) {
                         newState = TagName;
                     } else if (isBlank(c)) {
                         newState = TagAttr;
                     }
                     // Before Tag End
-                } else if (state == TagAttr) {
+                } else if (lookupState == TagAttr) {
                     if (isAlnum(c)) {
                         newState = TagAttr;
                     } else if (isEQ(c)) {
                         newState = TagAttrEQ;
                     }
                     // Before Tag End
-                } else if (state == TagAttrEQ) {
+                } else if (lookupState == TagAttrEQ) {
                     if (isAlnum(c)) {
                         newState = TagAttrValue;
                     }
-                } else if (state == TagAttrValue) {
+                } else if (lookupState == TagAttrValue) {
                     if (isAlnum(c)) {
                         newState = TagAttrValue;
                     }
                     // Before Tag End
-                } else if (state == TagEndSlash) {
+                } else if (lookupState == TagEndSlash) {
                     if (isGT(c)) {
                         newState = TagEnd;
                     }
-                } else if (state == TagStartSlash) {
+                } else if (lookupState == TagStartSlash) {
                     if (isAlnum_Col(c)) {
                         newState = TagName;
                     }
-                } else if (state == TagEnd) {
+                } else if (lookupState == TagEnd) {
                     if (isBlank(c)) {
                         newState = C1;
                     } else if (isLT(c)) {
@@ -274,7 +280,7 @@ public class ModeParser {
                     } else {
                         newState = C2;
                     }
-                } else if (state == C1) {
+                } else if (lookupState == C1) {
                     if (isBlank(c)) {
                         newState = C1;
                     } else if (isLT(c)) {
@@ -283,7 +289,7 @@ public class ModeParser {
                         newState = C2;
                     }
 
-                } else if (state == C2) {
+                } else if (lookupState == C2) {
                     if (isBlank(c)) {
                         newState = C3;
                     } else if (isLT(c)) {
@@ -291,7 +297,7 @@ public class ModeParser {
                     } else {
                         newState = C2;
                     }
-                } else if (state == C3) {
+                } else if (lookupState == C3) {
                     if (isBlank(c)) {
                         newState = C3;
                     } else if (isLT(c)) {

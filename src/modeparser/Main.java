@@ -8,6 +8,7 @@ public class Main {
         checkTR("<name a>");
         checkTR("<name a/>");
         checkTR("<name a/> hello world <no_name>");
+        checkTR("<ui:name>text</ui:name s>");
     }
 
     public static void checkTag() {
@@ -48,7 +49,6 @@ public class Main {
         System.out.println(s);
         ModeParser p = new ModeParser(s, false);
         p.parse();
-        System.out.println(p.text);
         for (TokenRange tr : p.tokens) {
             System.out.print(tr + "'" + s.substring(tr.start, tr.end) + "', ");
         }
