@@ -1,11 +1,14 @@
 package modeparser;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import parse2.ParseException;
+import parse2.Token;
 import parser.LexemNode;
 import static modeparser.CharUtil.isAlnum;
 import static modeparser.CharUtil.isBlank;
@@ -37,6 +40,7 @@ public class ModeParser {
     enum State {
         Invalid,
         Start,
+        EOF,
         TagStart,
         TagStart_,
         TagName,
@@ -112,7 +116,93 @@ public class ModeParser {
     }
 
     private Set<State> beforeTagClose = EnumSet.of(TagName, TagAttr, TagAttrValue);
+    TokenRange ct;
 
+    public List<TokenRange> tokens = new ArrayList<>();
+
+    public void runActions(char c) {
+        if (state != newState) {
+            if (ct != null) {
+                ct.end = i;
+                tokens.add(ct);
+            }
+            ct = new TokenRange(newState, i, i);
+            // leave state
+            switch (state) {
+                case TagName:
+                    String tagname = getTagname();
+                    appendTagstartBuffer();
+                    break;
+                case TagEnd:
+                    if (mode == OpenTag || mode == CloseTag) {
+                        mode = Text;
+                    }
+                    break;
+                case C1:
+                    appendBlankBuffer();
+                    break;
+                case C3:
+                    if (newState == C2) {
+                        appendBlankBuffer2();
+                    }
+                    break;
+
+            }
+            // - - - - - -
+            // enter state
+            switch (newState) {
+                case TagStart:
+                    appendBlankBuffer();
+                    cleanTagstartBuffer();
+                    break;
+                case TagName:
+                    cleanTagnameBuffer();
+                    break;
+                case TagAttr:
+                    appendBlankBuffer();
+                    break;
+                case C1:
+                case C3:
+                    cleanBlankBuffer();
+                    break;
+
+            }
+        }
+        // in state
+        switch (newState) {
+            case TagName:
+                putTagnameBuffer(c);
+            case TagStart:
+            case TagStartSlash:
+                putTagstartBuffer(c);
+                break;
+
+            case TagAttr:
+                if (!isBlank(c)  && removeWhitespaces) {
+                    putTextBuffer(' ');
+                }
+                if (!isBlank(c)) {
+                    putTextBuffer(c);
+                }
+                break;
+            case TagAttrEQ:
+            case TagAttrValue:
+            case TagEndSlash:
+            case TagEnd:
+                putTextBuffer(c);
+                break;
+
+            case C1:
+                putBlankBuffer(c);
+                break;
+            case C2:
+                putTextBuffer(c);
+                break;
+            case C3:
+                putBlankBuffer(c);
+                break;
+        }
+    }
 
     public void parse() {
         state = Start;
@@ -211,82 +301,7 @@ public class ModeParser {
                     }
                 }
             }
-            if (state != newState) {
-                // leave state
-                switch (state) {
-                    case TagName:
-                        String tagname = getTagname();
-                        appendTagstartBuffer();
-                        break;
-                    case TagEnd:
-                        if (mode == OpenTag || mode == CloseTag) {
-                            mode = Text;
-                        }
-                        break;
-                    case C1:
-                        appendBlankBuffer();
-                        break;
-                    case C3:
-                        if (newState == C2) {
-                            appendBlankBuffer2();
-                        }
-                        break;
-
-                }
-                // - - - - - -
-                // enter state
-                switch (newState) {
-                    case TagStart:
-                        appendBlankBuffer();
-                        cleanTagstartBuffer();
-                        break;
-                    case TagName:
-                        cleanTagnameBuffer();
-                        break;
-                    case TagAttr:
-                        appendBlankBuffer();
-                        break;
-                    case C1:
-                    case C3:
-                        cleanBlankBuffer();
-                        break;
-
-                }
-            }
-            // in state
-            switch (newState) {
-                case TagName:
-                    putTagnameBuffer(c);
-                case TagStart:
-                case TagStartSlash:
-                    putTagstartBuffer(c);
-                    break;
-
-                case TagAttr:
-                    if (!isBlank(c)  && removeWhitespaces) {
-                        putTextBuffer(' ');
-                    }
-                    if (!isBlank(c)) {
-                        putTextBuffer(c);
-                    }
-                    break;
-                case TagAttrEQ:
-                case TagAttrValue:
-                case TagEndSlash:
-                case TagEnd:
-                    putTextBuffer(c);
-                    break;
-
-                case C1:
-                    putBlankBuffer(c);
-                    break;
-                case C2:
-                    putTextBuffer(c);
-                    break;
-                case C3:
-                    putBlankBuffer(c);
-                    break;
-            }
+            runActions(c);
 
 
             state = newState;
@@ -295,6 +310,8 @@ public class ModeParser {
             }
             advance();
         }
+        newState = EOF;
+        runActions('Z');
 
     }
 

@@ -2,11 +2,12 @@ package modeparser;
 
 public class Main {
     public static void main(String[] args) {
-
-        checkTag();
-        checkTag2();
-
-
+        checkTR("<n>");
+        checkTR("<n >");
+        checkTR("<name >");
+        checkTR("<name a>");
+        checkTR("<name a/>");
+        checkTR("<name a/> hello world <no_name>");
     }
 
     public static void checkTag() {
@@ -41,5 +42,16 @@ public class Main {
         System.out.println(p.text);
 
         System.out.println("---------");
+    }
+
+    public static void checkTR(String s) {
+        System.out.println(s);
+        ModeParser p = new ModeParser(s, false);
+        p.parse();
+        System.out.println(p.text);
+        for (TokenRange tr : p.tokens) {
+            System.out.print(tr + "'" + s.substring(tr.start, tr.end) + "', ");
+        }
+        System.out.println("\n==================\n");
     }
 }
