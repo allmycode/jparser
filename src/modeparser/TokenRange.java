@@ -17,4 +17,25 @@ public class TokenRange {
     public String toString() {
         return state + "[" + start + ", " + end + ")";
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TokenRange that = (TokenRange) o;
+
+        if (start != that.start) return false;
+        if (end != that.end) return false;
+        return state == that.state;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = state != null ? state.hashCode() : 0;
+        result = 31 * result + start;
+        result = 31 * result + end;
+        return result;
+    }
 }

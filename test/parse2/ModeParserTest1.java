@@ -7,7 +7,6 @@ import modeparser.ModeParser;
 
 public class ModeParserTest1 {
     public static String check(String s, boolean removeWhitespaces) {
-        System.out.println(s);
         ModeParser p = new ModeParser(s, removeWhitespaces);
         p.parse();
         return p.text.toString();
@@ -19,6 +18,35 @@ public class ModeParserTest1 {
 
     public void checkR(String s, String r) {
         Assert.assertEquals(r, check(s, true));
+    }
+
+    @Test
+    public void test0() {
+        checkE("<ggg>");
+    }
+    @Test
+    public void test01() {
+        checkE("< ggg>");
+    }
+    @Test
+    public void test01R() {
+        checkR("< g>", "<g>");
+    }
+    @Test
+    public void test02() {
+        checkE("<ggg >");
+    }
+    @Test
+    public void test02R() {
+        checkR("<g >", "<g>");
+    }
+    @Test
+    public void test03() {
+        checkE("< g >");
+    }
+    @Test
+    public void test03R() {
+        checkR("< g >", "<g>");
     }
 
     @Test
@@ -53,6 +81,21 @@ public class ModeParserTest1 {
         checkE("< g a b=1>");
         checkE("< g a b =1>");
         checkE("< g a b = 1 f=g>");
+    }
+
+    @Test
+    public void testLong() {
+        checkE("< g a b = 1 f=g>");
+    }
+
+    @Test
+    public void testLongR() {
+        checkR("< g a b = 1 f=g>" ,"<g a b=1 f=g>");
+    }
+
+    @Test
+    public void testSpaceBetweenNameAttrR() {
+        checkR("< g    a   >", "<g a>");
     }
 
     @Test

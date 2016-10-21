@@ -37,7 +37,7 @@ public class ModeParser {
 
     private Mode mode;
 
-    enum State {
+    public enum State {
         Invalid,
         Start,
         EOF,
