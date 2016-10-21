@@ -5,23 +5,43 @@ public enum State {
     Start,
     EOF,
     TagStart,
-    TagStart_,
+    TagStart_(true),
     TagName,
-    TagName_,
+    TagName_(true),
     TagEndSlash,
     TagEnd,
     TagStartSlash,
-    TagStartSlash_,
+    TagStartSlash_(true),
     TagAttr,
-    TagAttr_,
+    TagAttr_(true),
     TagAttrEQ,
-    TagAttrEQ_,
+    TagAttrEQ_(true),
     TagAttrValue,
     TagAttrVString,
     TagAttrVString_,
-    TagAttrVString__,
+    TagAttrVString__(true),
     C1,
     C2,
     C3
     ;
+
+    private boolean blank;
+    private boolean dumpToText;
+
+    State() {
+        dumpToText = true;
+    }
+
+    State(boolean blank) {
+        this.blank = blank;
+        this.dumpToText = false;
+    }
+
+    public boolean isBlank() {
+        return blank;
+    }
+
+    public boolean isDumpToText() {
+        return dumpToText;
+    }
 }

@@ -109,7 +109,7 @@ public class ModeParser {
                     $(GT, TagEnd),
                     $(BLANK, TagAttr_)),
             tr (TagAttrVString,
-                    // String bounds and escape treated specially
+                    // String bounds and escape are treated specially
                     $(TagAttrVString)),
             tr (TagAttrVString_,
                     $(SLASH, TagEndSlash),
@@ -150,7 +150,7 @@ public class ModeParser {
         state = Start;
         mode = Text;
         i = 0;
-        char c = 0;
+        char c;
         while (i < str.length()) {
             c = str.charAt(i);
             SymbolClass symClass = SymbolClasses.translate.apply(c);
@@ -185,11 +185,6 @@ public class ModeParser {
             processStateTransition(c, state, newState);
             state = newState;
 
-            //processModeTransition();
-            //if (newMode != null) {
-            //    mode = newMode;
-           // }
-
             if (state == Invalid) {
                 throw new ParseException("Invalid state at [" + row + ":" + col +"] char '"+ c + "'", row, col);
             }
@@ -218,18 +213,10 @@ public class ModeParser {
             }
             currentTokenRange = new TokenRange(newState, i, i);
             // leave state
+            if (state.isBlank()) {
+                appendBlankBuffer();
+            }
             switch (state) {
-                // BLANK STATES
-                case TagStart_:
-                case TagName_:
-                case TagAttr_:
-                case TagAttrEQ_:
-                case TagAttrVString__:
-                case TagStartSlash_:
-                    appendBlankBuffer();
-                    break;
-                // BLANK STATES END
-
                 case TagName:
                     String tagname = getTagname();
                     if (tagname.startsWith("ui:")) {
@@ -265,18 +252,10 @@ public class ModeParser {
             }
             // - - - - - -
             // enter state
+            if (newState.isBlank()) {
+                cleanBlankBuffer();
+            }
             switch (newState) {
-                // BLANK STATES
-                case TagStart_:
-                case TagName_:
-                case TagAttr_:
-                case TagAttrEQ_:
-                case TagAttrVString__:
-                case TagStartSlash_:
-                    cleanBlankBuffer();
-                    break;
-                // BLANK STATES END
-
                 case TagStart:
                     appendBlankBuffer();
                     cleanTagstartBuffer();
@@ -310,18 +289,10 @@ public class ModeParser {
             }
         }
         // in state
+        if (newState.isBlank()) {
+            putBlankBuffer(c);
+        }
         switch (newState) {
-            // BLANK STATES
-            case TagStart_:
-            case TagName_:
-            case TagAttr_:
-            case TagAttrEQ_:
-            case TagAttrVString__:
-            case TagStartSlash_:
-                putBlankBuffer(c);
-                break;
-            // BLANK STATES END
-
             case TagName:
                 putTagnameBuffer(c);
             case TagStart:
