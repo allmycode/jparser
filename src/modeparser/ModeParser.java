@@ -240,9 +240,6 @@ public class ModeParser {
                     break;
 
 
-                case C1:
-                    appendBlankBuffer();
-                    break;
                 case C3:
                     if (newState == C2) {
                         appendBlankBuffer2();
@@ -271,7 +268,6 @@ public class ModeParser {
                     attributeBuffer = new StringBuilder();
                     appendBlankBuffer();
                     break;
-                case C1:
                 case C3:
                     cleanBlankBuffer();
                     break;
@@ -292,6 +288,10 @@ public class ModeParser {
         if (newState.isBlank()) {
             putBlankBuffer(c);
         }
+        if (newState.isDumpToText()) {
+            putTextBuffer(c);
+        }
+
         switch (newState) {
             case TagName:
                 putTagnameBuffer(c);
@@ -302,7 +302,6 @@ public class ModeParser {
 
             case TagEndSlash:
                 putTagstartBuffer(c);
-                putTextBuffer(c);
                 break;
 
 
@@ -315,13 +314,8 @@ public class ModeParser {
                 }
                 attributeBuffer.append(c);
                 break;
-            case TagAttrEQ:
-            case TagEnd:
-                putTextBuffer(c);
-                break;
 
             case TagAttrValue:
-                putTextBuffer(c);
                 valueBuffer.append(c);
                 break;
 
@@ -333,16 +327,9 @@ public class ModeParser {
                 break;
 
             case TagAttrVString_:
-                putTextBuffer(c);
                 valueBuffer.append(c);
                 break;
 
-            case C1:
-                putBlankBuffer(c);
-                break;
-            case C2:
-                putTextBuffer(c);
-                break;
             case C3:
                 putBlankBuffer(c);
                 break;

@@ -3,26 +3,26 @@ package modeparser;
 public enum State {
     Invalid,
     Start,
-    EOF,
-    TagStart,
+    EOF(false, false),
+    TagStart(false, false),
     TagStart_(true),
-    TagName,
+    TagName(false, false),
     TagName_(true),
     TagEndSlash,
     TagEnd,
-    TagStartSlash,
+    TagStartSlash(false, false),
     TagStartSlash_(true),
-    TagAttr,
+    TagAttr(false, false),
     TagAttr_(true),
     TagAttrEQ,
     TagAttrEQ_(true),
     TagAttrValue,
-    TagAttrVString,
+    TagAttrVString(false, false),
     TagAttrVString_,
     TagAttrVString__(true),
-    C1,
+    C1(true),
     C2,
-    C3
+    C3(false, false)
     ;
 
     private boolean blank;
@@ -35,6 +35,11 @@ public enum State {
     State(boolean blank) {
         this.blank = blank;
         this.dumpToText = false;
+    }
+
+    State(boolean blank, boolean dumpToText) {
+        this.blank = blank;
+        this.dumpToText = dumpToText;
     }
 
     public boolean isBlank() {
