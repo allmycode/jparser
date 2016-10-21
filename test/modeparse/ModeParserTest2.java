@@ -6,11 +6,11 @@ import org.junit.Test;
 
 import modeparser.ModeParser;
 import modeparser.TokenRange;
-import static modeparser.ModeParser.State.*;
+import static modeparser.State.*;
 
 public class ModeParserTest2 {
 
-    static TokenRange tr(modeparser.ModeParser.State state, int start, int end) {
+    static TokenRange tr(modeparser.State state, int start, int end) {
         return new TokenRange(state, start, end);
     }
 

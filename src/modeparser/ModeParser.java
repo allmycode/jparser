@@ -1,28 +1,20 @@
 package modeparser;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import parse2.L2SymbolClasses;
 import parse2.ParseException;
 import parse2.SymbolClass;
 import parse2.SymbolClasses;
 import parser.LexemNode;
-import static modeparser.CharUtil.isAlnum;
 import static modeparser.CharUtil.isBlank;
-import static modeparser.CharUtil.isEQ;
-import static modeparser.CharUtil.isGT;
-import static modeparser.CharUtil.isLT;
-import static modeparser.CharUtil.isSlash;
-import static modeparser.CharUtil.isAlnum_Col;
-import static modeparser.CharUtil.isStringBound;
 import static modeparser.ModeParser.Mode.*;
-import static modeparser.ModeParser.State.*;
+import static modeparser.State.*;
 
+import static modeparser.TableDFAHelper.*;
 import static parse2.L2SymbolClasses.*;
 import static parse2.SymbolClasses.*;
 
@@ -36,41 +28,19 @@ public class ModeParser {
         Expression
     }
 
-    private Mode mode;
-
-    public enum State {
-        Invalid,
-        Start,
-        EOF,
-        TagStart,
-        TagStart_,
-        TagName,
-        TagName_,
-        TagEndSlash,
-        TagEnd,
-        TagStartSlash,
-        TagStartSlash_,
-        TagAttr,
-        TagAttr_,
-        TagAttrEQ,
-        TagAttrEQ_,
-        TagAttrValue,
-        TagAttrVString,
-        TagAttrVString_,
-        TagAttrVString__,
-        C1,
-        C2,
-        C3
-        ;
-    }
     public boolean removeWhitespaces;
 
     private boolean stringSubmode;
     private char stringBound;
     private char stringEscape;
 
+    // State variables
     State state;
     State newState;
+
+    // Mode variables
+    private Mode mode;
+    private Mode newMode;
 
     private int i;
     private int row;
@@ -82,63 +52,6 @@ public class ModeParser {
     public ModeParser(String str, boolean removeWhitespaces) {
         this.str = str;
         this.removeWhitespaces = removeWhitespaces;
-    }
-
-    static class StateTransitions {
-        public final State from;
-        public final Map<SymbolClass, State> transitions;
-
-        public StateTransitions(State from, Map<SymbolClass, State> transitions) {
-            this.from = from;
-            this.transitions = transitions;
-        }
-    }
-    public Map<State, Map<SymbolClass, State>> define(StateTransitions... sts) {
-        Map<State, Map<SymbolClass, State>> res = new HashMap<>();
-        for (StateTransitions o : sts) {
-            res.put(o.from, o.transitions);
-        }
-        return res;
-    }
-
-    static class Transition {
-        final SymbolClass sym;
-        final State to;
-
-        public Transition(SymbolClass sym, State to) {
-            this.sym = sym;
-            this.to = to;
-        }
-    }
-
-    public static Transition $(SymbolClass sym, State to) {
-        return new Transition(sym, to);
-    }
-
-    public static Transition $(State to) {
-        return new Transition(null, to);
-    }
-
-    public static StateTransitions tr(State from, Transition... ots) {
-        Map<SymbolClass, State> res = new HashMap<>();
-        for (Transition o : ots) {
-            if (o.sym == null) {
-                for (SymbolClass sym : SymbolClasses.values()) {
-                    if (res.get(sym) == null) {
-                        res.put(sym, o.to);
-                    }
-                }
-                continue;
-            }
-            if (o.sym instanceof L2SymbolClasses) {
-                for (SymbolClass realSym : ((L2SymbolClasses) o.sym).symClasses) {
-                    res.put(realSym, o.to);
-                }
-            } else {
-                res.put(o.sym, o.to);
-            }
-        }
-        return new StateTransitions(from, res);
     }
 
     Map<State, Map<SymbolClass, State>> transitions = define(
@@ -189,8 +102,8 @@ public class ModeParser {
                     $(SLASH, TagEndSlash),
                     $(GT, TagEnd),
                     $(BLANK, TagAttr_)),
-            // String TagAttrVString treated specially
             tr (TagAttrVString,
+                    // String bounds and escape treated specially
                     $(TagAttrVString)),
             tr (TagAttrVString_,
                     $(SLASH, TagEndSlash),
@@ -226,14 +139,6 @@ public class ModeParser {
                     $(BLANK, C3),
                     $(C2))
     );
-
-    public State getNext(State from, SymbolClass by) {
-        Map<SymbolClass, State> stateTransitions = transitions.get(from);
-        if (stateTransitions == null) {
-            throw new ParseException("No transitions from " + from, row, col);
-        }
-        return stateTransitions.get(by);
-    }
 
     TokenRange ct;
 
@@ -271,12 +176,10 @@ public class ModeParser {
             }
 
             if (newState == Invalid) {
-                newState = getNext(state, symClass);
+                newState = getNext(transitions, state, symClass, row, col);
             }
 
-            if (stringEscape == 0) {
-                runActions(c);
-            }
+            processStateTransition(c, state, newState);
 
             state = newState;
             if (state == Invalid) {
@@ -290,12 +193,11 @@ public class ModeParser {
                 col = 0;
             }
         }
-        newState = EOF;
-        runActions('Z');
+        processStateTransition('Z', state, EOF);
 
     }
 
-    public void runActions(char c) {
+    public void processStateTransition(char c, State state, State newState) {
         if (state != newState && !(state == TagAttrVString && newState == TagAttrVString_)) {
             if (ct != null) {
                 ct.end = i;
@@ -304,6 +206,7 @@ public class ModeParser {
             ct = new TokenRange(newState, i, i);
             // leave state
             switch (state) {
+                // BLANK STATES
                 case TagStart_:
                 case TagName_:
                 case TagAttr_:
@@ -312,6 +215,7 @@ public class ModeParser {
                 case TagStartSlash_:
                     appendBlankBuffer();
                     break;
+                // BLANK STATES END
 
                 case TagName:
                     String tagname = getTagname();
@@ -335,10 +239,7 @@ public class ModeParser {
             // - - - - - -
             // enter state
             switch (newState) {
-                case TagStart:
-                    appendBlankBuffer();
-                    cleanTagstartBuffer();
-                    break;
+                // BLANK STATES
                 case TagStart_:
                 case TagName_:
                 case TagAttr_:
@@ -346,6 +247,12 @@ public class ModeParser {
                 case TagAttrVString__:
                 case TagStartSlash_:
                     cleanBlankBuffer();
+                    break;
+                // BLANK STATES END
+
+                case TagStart:
+                    appendBlankBuffer();
+                    cleanTagstartBuffer();
                     break;
                 case TagName:
                     cleanTagnameBuffer();
@@ -366,6 +273,7 @@ public class ModeParser {
         }
         // in state
         switch (newState) {
+            // BLANK STATES
             case TagStart_:
             case TagName_:
             case TagAttr_:
@@ -374,6 +282,8 @@ public class ModeParser {
             case TagStartSlash_:
                 putBlankBuffer(c);
                 break;
+            // BLANK STATES END
+
             case TagName:
                 putTagnameBuffer(c);
             case TagStart:
@@ -391,12 +301,16 @@ public class ModeParser {
                 break;
             case TagAttrEQ:
             case TagAttrValue:
-            case TagAttrVString:
             case TagAttrVString_:
             case TagEndSlash:
             case TagEnd:
                 putTextBuffer(c);
                 break;
+
+            case TagAttrVString:
+                if (stringEscape == 0) {
+                    putTextBuffer(c);
+                }
 
             case C1:
                 putBlankBuffer(c);

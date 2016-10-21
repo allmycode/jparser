@@ -3,11 +3,11 @@ package modeparser;
 import parse2.Token;
 
 public class TokenRange {
-    public ModeParser.State state;
+    public State state;
     public int start;
     public int end;
 
-    public TokenRange(ModeParser.State state, int start, int end) {
+    public TokenRange(State state, int start, int end) {
         this.state = state;
         this.start = start;
         this.end = end;
